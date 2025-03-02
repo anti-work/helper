@@ -1,14 +1,16 @@
 import {
   ArrowUturnLeftIcon,
   ArrowUturnUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ExclamationCircleIcon,
   FlagIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { upperFirst } from "lodash";
+import { useState } from "react";
 import { ConversationEvent } from "@/app/types/global";
 import HumanizedTime from "@/components/humanizedTime";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const statusVerbs = {
   open: "opened",
@@ -25,6 +27,7 @@ const statusIcons = {
 };
 
 export const EventItem = ({ event }: { event: ConversationEvent }) => {
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   if (!event.changes) return null;
 
   const description = [
@@ -42,37 +45,37 @@ export const EventItem = ({ event }: { event: ConversationEvent }) => {
   const Icon = event.changes.status ? statusIcons[event.changes.status] : UserIcon;
 
   return (
-    <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
-      <Icon className="h-4 w-4" />
-      <span>{upperFirst(description)}</span>
-      {hasDetails && (
-        <>
-          <span>·</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="cursor-help decoration-dotted underline">Details</button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-background text-foreground" sideOffset={5}>
-              <div className="flex flex-col gap-1">
-                {event.byUser && (
-                  <div>
-                    <strong>By:</strong> {event.byUser}
-                  </div>
-                )}
-                {event.reason && (
-                  <div>
-                    <strong>Reason:</strong> {event.reason}
-                  </div>
-                )}
+    <div className="flex flex-col mx-auto">
+      <button
+        className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        onClick={() => setDetailsExpanded(!detailsExpanded)}
+      >
+        {hasDetails &&
+          (detailsExpanded ? <ChevronDownIcon className="h-3 w-3" /> : <ChevronRightIcon className="h-3 w-3" />)}
+        <Icon className="h-4 w-4" />
+        <span className="flex items-center gap-1">{upperFirst(description)}</span>
+        <span>·</span>
+        <span>
+          <HumanizedTime time={event.createdAt} />
+        </span>
+      </button>
+
+      {hasDetails && detailsExpanded && (
+        <div className="mt-2 text-sm text-muted-foreground border rounded p-4">
+          <div className="flex flex-col gap-1">
+            {event.byUser && (
+              <div>
+                <strong>By:</strong> {event.byUser}
               </div>
-            </TooltipContent>
-          </Tooltip>
-        </>
+            )}
+            {event.reason && (
+              <div>
+                <strong>Reason:</strong> {event.reason}
+              </div>
+            )}
+          </div>
+        </div>
       )}
-      <span>·</span>
-      <span>
-        <HumanizedTime time={event.createdAt} />
-      </span>
     </div>
   );
 };

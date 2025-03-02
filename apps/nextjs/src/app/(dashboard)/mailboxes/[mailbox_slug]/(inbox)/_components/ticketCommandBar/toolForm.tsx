@@ -1,5 +1,5 @@
-import { kebabCase, upperFirst } from "lodash";
 import { useState } from "react";
+import { formatParameter } from "@/app/(dashboard)/mailboxes/[mailbox_slug]/(inbox)/_components/toolItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,7 @@ export const ToolForm = ({ tool, onOpenChange }: ToolFormProps) => {
       {tool.parameterTypes.map(({ name, description, type, required }) => (
         <div key={name} className="grid gap-1">
           <Label htmlFor={name} className="text-sm">
-            {upperFirst(kebabCase(name).replaceAll("-", " "))}
+            {formatParameter(name)}
             {required ? "" : " (optional)"}
           </Label>
           <Input

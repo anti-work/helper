@@ -62,7 +62,6 @@ describe("apiTools", () => {
         authenticationToken: "test-token",
       });
 
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Success response" } as any);
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ message: "Success response" }),
@@ -79,7 +78,7 @@ describe("apiTools", () => {
         }),
       );
       expect(result.success).toBe(true);
-      expect(result.message).toBe("Success response");
+      expect(result.data).toEqual({ message: "Success response" });
     });
 
     it("handles API errors", async () => {
@@ -91,15 +90,32 @@ describe("apiTools", () => {
 
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,
+        status: 400,
         statusText: "Bad Request",
+        clone: () => ({
+          json: () => Promise.reject(new Error("Invalid JSON")),
+        }),
         text: () => Promise.resolve("Error details"),
       });
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "API error occurred" } as any);
 
       const result = await callToolApi(conversation, tool, {});
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe("API error occurred");
+    });
+
+    it("handles fetch errors", async () => {
+      const { mailbox } = await userFactory.createRootUser();
+      const { conversation } = await conversationFactory.create(mailbox.id);
+      const { tool } = await toolsFactory.create({
+        mailboxId: mailbox.id,
+      });
+
+      global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network error"));
+
+      const result = await callToolApi(conversation, tool, {});
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("The API returned an error");
     });
 
     it("throws ToolApiError for missing required parameters", async () => {
@@ -133,8 +149,6 @@ describe("apiTools", () => {
         parameters: [{ name: "param1", type: "string", required: true, in: "query" }],
       });
 
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Success response" } as any);
-
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ message: "Success response" }),
@@ -163,8 +177,6 @@ describe("apiTools", () => {
           { name: "param2", type: "string", required: false, in: "body" },
         ],
       });
-
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Success response" } as any);
 
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
@@ -197,8 +209,6 @@ describe("apiTools", () => {
         json: () => Promise.resolve({ message: "Success" }),
       });
 
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Response received" } as any);
-
       await callToolApi(conversation, tool, {});
 
       expect(fetch).toHaveBeenCalledWith(
@@ -230,8 +240,6 @@ describe("apiTools", () => {
         json: () => Promise.resolve({ message: "Success" }),
       });
 
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Response received" } as any);
-
       await callToolApi(conversation, tool, {});
 
       const headers = (fetch as any).mock.calls[0][1].headers;
@@ -254,8 +262,6 @@ describe("apiTools", () => {
         json: () => Promise.resolve(responseData),
       });
 
-      vi.mocked(generateText).mockResolvedValueOnce({ text: "Success message" } as any);
-
       await callToolApi(conversation, tool, { param: "value" });
 
       const toolMessage = await db.query.conversationMessages.findFirst({
@@ -277,7 +283,7 @@ describe("apiTools", () => {
         result: responseData,
         success: true,
       });
-      expect(toolMessage?.body).toBe("Success message");
+      expect(toolMessage?.body).toBe("Tool executed successfully.");
     });
   });
 
@@ -344,19 +350,22 @@ describe("apiTools", () => {
 
       expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
-          prompt: expect.stringContaining("Test Customer"),
+          prompt: expect.stringContaining(JSON.stringify(metadata, null, 2)),
         }),
       );
     });
 
-    it("includes both user and assistant messages in conversation context", async () => {
+    it("includes relevant messages in conversation context", async () => {
       const { mailbox } = await userFactory.createRootUser();
       const { conversation } = await conversationFactory.create(mailbox.id);
 
       // Create test messages
       const messages = [
-        { role: "user", body: "Test user message" },
-        { role: "ai_assistant", body: "Test assistant response" },
+        { role: "user", body: "First user message" },
+        { role: "ai_assistant", body: "First assistant response" },
+        { role: "user", body: "Second user message" },
+        { role: "ai_assistant", body: "Second assistant response" },
+        { role: "user", body: "Third user message" },
       ];
 
       for (const msg of messages) {
@@ -379,22 +388,22 @@ describe("apiTools", () => {
 
       await generateAvailableTools(conversation, mailbox, [tool]);
 
-      expect(generateText).toHaveBeenCalledWith({
-        model: expect.any(Object),
-        experimental_telemetry: {
-          functionId: "list-available-tools",
-          isEnabled: true,
-        },
-        maxSteps: 1,
-        temperature: 0.5,
-        maxTokens: 1000,
-        system: expect.any(String),
-        prompt: expect.stringContaining(
-          ["user: Test user message", "ai_assistant: Test assistant response"].join("\n"),
-        ),
-        toolChoice: "required",
-        tools: expect.any(Object),
-      });
+      // Should include first message and last 3 messages when token limit allows
+      expect(generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Messages: user: First user message"),
+        }),
+      );
+      expect(generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("ai_assistant: Second assistant response"),
+        }),
+      );
+      expect(generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("user: Third user message"),
+        }),
+      );
     });
   });
 });

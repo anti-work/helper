@@ -466,7 +466,8 @@ export async function getTextWithConversationSubject(
   message: typeof conversationMessages.$inferSelect,
 ) {
   const cleanedUpText = await ensureCleanedUpText(message);
-  return `${conversation.subject ? `${conversation.subject}\n\n` : ""}${cleanedUpText}`;
+  const subject = conversation.subject;
+  return `${subject ? `${subject}\n\n` : ""}${cleanedUpText}`;
 }
 
 export const getPastMessages = async (
@@ -502,8 +503,8 @@ export const createToolEvent = async ({
 }: {
   conversationId: number;
   tool: Tool;
-  data?: string;
-  error?: string;
+  data?: any;
+  error?: any;
   parameters: Record<string, any>;
   userMessage: string;
   tx?: Transaction | typeof db;

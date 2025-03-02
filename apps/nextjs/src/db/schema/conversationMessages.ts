@@ -18,7 +18,7 @@ export type ToolMetadata = {
     url: string;
     requestMethod: string;
   };
-  result: string;
+  result: any;
   success: boolean;
   parameters: Record<string, unknown>;
 };

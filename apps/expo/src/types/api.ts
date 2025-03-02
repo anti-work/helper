@@ -737,9 +737,14 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   data?: undefined;
                 }
               | {
+                  success: boolean;
+                  message?: undefined;
+                  data?: undefined;
+                }
+              | {
                   data: any;
                   success: boolean;
-                  message: string;
+                  message?: undefined;
                 };
           }>;
         };

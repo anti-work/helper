@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToolMetadata } from "@/db/schema";
 import { WorkflowAction } from "@/types/workflows";
 import { ConversationWithNewMessages } from "./conversation";
-import { ToolEvent } from "./toolEvent";
+import { ToolItem } from "./toolItem";
 
 export const MessageThread = ({
   conversation,
@@ -43,11 +43,15 @@ export const MessageThread = ({
             <span>Started this conversation from a prompt</span>
           </div>
         )}
-        {conversation.messages.map((message) =>
+        {conversation.messages.map((message, index) =>
           message.type === "event" ? (
             <EventItem key={message.id} event={message} />
           ) : message.role === "tool" && message.type === "message" ? (
-            <ToolEvent key={message.id} message={{ ...message, metadata: message.metadata as ToolMetadata }} />
+            <ToolItem
+              key={message.id}
+              message={{ ...message, metadata: message.metadata as ToolMetadata }}
+              initialExpanded={index === conversation.messages.length - 1}
+            />
           ) : (
             <MessageItem
               key={`${message.type}-${message.id}`}

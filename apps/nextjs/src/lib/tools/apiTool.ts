@@ -29,9 +29,6 @@ export type ToolAvailableResult = {
   parameters: Record<string, any>;
 };
 
-const GENERATE_AI_RESPONSE_PROMPT =
-  "Generate a user message based on the API response. Be direct and concise. Don't use more than 5 words to describe it.";
-
 const LIST_AVAILABLE_TOOLS_SYSTEM_PROMPT =
   "Based on the user's conversation and the provided metadata, suggest appropriate functions and their parameters, even if the conversation looks like it's already resolved. Return all possible functions, even if they are more than 5.";
 
@@ -73,32 +70,37 @@ export const callToolApi = async (conversation: Conversation, tool: Tool, params
   }
 
   if (!response.ok) {
-    const responseBody = await response.text();
-    const errorMessage = await generateToolResultAIResponse(
-      `The API returned an error: ${response.statusText}\n${responseBody}`,
-    );
+    let responseBody;
+    try {
+      responseBody = await response.clone().json();
+    } catch {
+      responseBody = await response.text();
+    }
     await createToolEvent({
       conversationId: conversation.id,
       tool,
-      error: `${response.status} ${response.statusText}: ${responseBody}`,
+      error: { status: response.status, statusText: response.statusText, body: responseBody },
       parameters: params,
-      userMessage: errorMessage,
+      userMessage: "The API returned an error",
     });
     return {
       success: false,
-      message: errorMessage,
     };
   }
 
   const data = await response.json();
-  const userMessage = await generateToolResultAIResponse(JSON.stringify(data, null, 2));
 
-  await createToolEvent({ conversationId: conversation.id, tool, data, parameters: params, userMessage });
+  await createToolEvent({
+    conversationId: conversation.id,
+    tool,
+    data,
+    parameters: params,
+    userMessage: "Tool executed successfully.",
+  });
 
   return {
     data,
     success: true,
-    message: userMessage,
   };
 };
 
@@ -169,21 +171,6 @@ export const generateAvailableTools = async (
       parameters: toolCall.args,
     };
   });
-};
-
-const generateToolResultAIResponse = async (body: string) => {
-  const { text } = await generateText({
-    model: openai(GPT_4O_MINI_MODEL),
-    system: GENERATE_AI_RESPONSE_PROMPT,
-    prompt: body,
-    temperature: 0.1,
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: "tools-run-generate-ai-response",
-    },
-  });
-
-  return text;
 };
 
 const createHeaders = (tool: Tool) => {
