@@ -237,6 +237,105 @@ Please reply with this information. We'll review your request within 1-2 busines
           </div>
         </div>
       );
+    case "supportTicket1":
+      return (
+        <div className="p-6">
+          <div className="max-w-xl flex-grow">
+            <div className="mb-4">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                <UserIcon className="h-3 w-3" />
+                <span>Customer</span>
+              </div>
+              <div className="inline-block rounded-lg p-4 bg-muted mr-10">
+                <div className="lg:text-base text-sm prose">
+                  <p>How do I download my purchase? I can't find the download link anywhere.</p>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <div className="flex justify-end mb-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <UserIcon className="h-3 w-3" />
+                  <span>Helper AI</span>
+                </div>
+              </div>
+              <div className="bg-secondary rounded-lg p-4 ml-10">
+                <p className="lg:text-base text-sm prose">
+                  You can download your purchase by logging into your account, going to your library, and clicking the
+                  download button next to the product. If you're still having trouble, please let me know and I can
+                  provide more specific instructions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    case "supportTicket2":
+      return (
+        <div className="p-6">
+          <div className="max-w-xl flex-grow">
+            <div className="mb-4">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                <UserIcon className="h-3 w-3" />
+                <span>Customer</span>
+              </div>
+              <div className="inline-block rounded-lg p-4 bg-muted mr-10">
+                <div className="lg:text-base text-sm prose">
+                  <p>I need to update my payment method but I can't figure out how to do it. Can you help?</p>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <div className="flex justify-end mb-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <UserIcon className="h-3 w-3" />
+                  <span>Helper AI</span>
+                </div>
+              </div>
+              <div className="bg-secondary rounded-lg p-4 ml-10">
+                <p className="lg:text-base text-sm prose">
+                  To update your payment method, go to your account settings, select "Payment methods" from the menu,
+                  and click "Add new payment method" or edit an existing one. Let me know if you need any further
+                  assistance!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    case "supportTicket3":
+      return (
+        <div className="p-6">
+          <div className="max-w-xl flex-grow">
+            <div className="mb-4">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                <UserIcon className="h-3 w-3" />
+                <span>Customer</span>
+              </div>
+              <div className="inline-block rounded-lg p-4 bg-muted mr-10">
+                <div className="lg:text-base text-sm prose">
+                  <p>When will my order ship? It's been 3 days and I haven't received any updates.</p>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <div className="flex justify-end mb-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <UserIcon className="h-3 w-3" />
+                  <span>Helper AI</span>
+                </div>
+              </div>
+              <div className="bg-secondary rounded-lg p-4 ml-10">
+                <p className="lg:text-base text-sm prose">
+                  Orders typically ship within 1-2 business days and delivery takes 3-5 business days depending on your
+                  location. I've checked your order status and it was shipped yesterday. You should receive a tracking
+                  number via email shortly. Please check your spam folder if you don't see it.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     default:
       return null;
   }
@@ -300,7 +399,15 @@ export const MarketingPage = ({ githubStars }: { githubStars: number }) => {
   }, []);
 
   const cardTypes = useMemo(() => {
-    return ["styleLinter", "autoDraft", "pinnedReplies", "promptConfig"];
+    return [
+      "styleLinter",
+      "autoDraft",
+      "pinnedReplies",
+      "promptConfig",
+      "supportTicket1",
+      "supportTicket2",
+      "supportTicket3",
+    ];
   }, []);
 
   const generateRandomColors = useCallback(() => {
@@ -382,19 +489,44 @@ export const MarketingPage = ({ githubStars }: { githubStars: number }) => {
 
       <main>
         <section className="py-6 md:p-8">
-          <div className="w-full mx-auto bg-bright bg-[url('/hand-bg.svg')] bg-no-repeat bg-left-bottom bg-[length:600px] md:bg-contain md:rounded-3xl p-12 text-center">
-            <h1 className="font-sundry-narrow-bold text-6xl md:text-8xl font-bold mb-6 text-primary dark:text-primary-foreground">
+          <div className="w-full mx-auto bg-bright bg-[url('/hand-bg.svg')] bg-no-repeat bg-left-bottom bg-[length:600px] md:bg-contain md:rounded-3xl p-12">
+            <h1 className="font-sundry-narrow-bold text-6xl md:text-8xl font-bold mb-6 text-center text-primary dark:text-primary-foreground">
               World-class support
               <br /> can be <span className="italic">effortless.</span>
             </h1>
-            <div className="mb-6">
+
+            {/* Masonry grid of support tickets and feature cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+              {[0, 1, 2, 3, 4, 5, 6].map((index) => {
+                const cardType = cardTypes[index % cardTypes.length] || "styleLinter";
+                const isEven = index % 2 === 0;
+
+                return (
+                  <div
+                    key={index}
+                    className={`bg-background rounded-3xl shadow-lg overflow-hidden ${
+                      isEven ? "md:col-span-1" : "md:col-span-1 lg:col-span-2"
+                    } ${index === 0 ? "md:row-span-2" : ""}`}
+                    style={{
+                      height: index === 0 ? "auto" : isEven ? "400px" : "350px",
+                    }}
+                  >
+                    <div className="h-full overflow-y-auto">
+                      <CardContent type={cardType} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-center mb-6">
               <Button
                 variant="default"
                 size="lg"
                 className="dark:bg-primary-foreground dark:text-primary relative overflow-hidden group"
                 onClick={() => sendPrompt("Hello! What's Helper?")}
               >
-                <span className="relative z-10">SEE IT IN ACTION</span>
+                <span className="relative z-10">See it in action</span>
                 <div className="absolute inset-0 w-[200%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%]" />
               </Button>
             </div>
@@ -437,7 +569,7 @@ export const MarketingPage = ({ githubStars }: { githubStars: number }) => {
                 transition: isDesktop ? "none" : "transform 0.5s ease-out",
               }}
             >
-              {[...Array(16)].map((_, i) => (
+              {[...Array(21)].map((_, i) => (
                 <div
                   key={i}
                   className="flex-shrink-0 bg-background rounded-3xl shadow-lg flex flex-col overflow-hidden"
@@ -455,36 +587,57 @@ export const MarketingPage = ({ githubStars }: { githubStars: number }) => {
 
                   <div className="flex-1 bg-secondary p-8 overflow-y-auto">
                     <h3 className="font-sundry-narrow-bold text-3xl md:text-5xl text-primary font-bold mb-4">
-                      {i % 4 === 0 && (
+                      {i % 7 === 0 && (
                         <>
                           Craft authentic replies in your brand&apos;s voice with
                           <span className="underline-offset">&nbsp;style linter</span>
                         </>
                       )}
-                      {i % 4 === 1 && (
+                      {i % 7 === 1 && (
                         <>
                           Goodbye writer&apos;s block, hello
                           <span className="underline-offset">&nbsp;auto-generated drafts</span>
                         </>
                       )}
-                      {i % 4 === 2 && (
+                      {i % 7 === 2 && (
                         <>
                           Your best replies become the new standard with
                           <span className="underline-offset">&nbsp;FAQs</span>
                         </>
                       )}
-                      {i % 4 === 3 && (
+                      {i % 7 === 3 && (
                         <>
                           Set the rules and Helper will follow your lead with
                           <span className="underline-offset">&nbsp;prompt configuration</span>
                         </>
                       )}
+                      {i % 7 === 4 && (
+                        <>
+                          Quick and accurate responses to
+                          <span className="underline-offset">&nbsp;common questions</span>
+                        </>
+                      )}
+                      {i % 7 === 5 && (
+                        <>
+                          Personalized support for
+                          <span className="underline-offset">&nbsp;account management</span>
+                        </>
+                      )}
+                      {i % 7 === 6 && (
+                        <>
+                          Proactive updates on
+                          <span className="underline-offset">&nbsp;order status</span>
+                        </>
+                      )}
                     </h3>
                     <p className="text-md text-muted-foreground">
-                      {i % 4 === 0 && "Human touch, robot efficiency"}
-                      {i % 4 === 1 && "All you have to do is click send."}
-                      {i % 4 === 2 && "Pin your best and watch Helper learn"}
-                      {i % 4 === 3 && "Responses that fit your needs."}
+                      {i % 7 === 0 && "Human touch, robot efficiency"}
+                      {i % 7 === 1 && "All you have to do is click send."}
+                      {i % 7 === 2 && "Pin your best and watch Helper learn"}
+                      {i % 7 === 3 && "Responses that fit your needs."}
+                      {i % 7 === 4 && "Save time with instant answers"}
+                      {i % 7 === 5 && "Help customers manage their accounts"}
+                      {i % 7 === 6 && "Keep customers informed about their orders"}
                     </p>
                   </div>
                 </div>
