@@ -2,13 +2,12 @@
 
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Linter, LinterUpdate } from "@/app/types/global";
 import { MAX_STYLE_LINTERS } from "@/components/constants";
 import { toast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { deleteStyleLinter, upsertStyleLinter } from "@/serverActions/style-linter";
 import { api } from "@/trpc/react";
 import LinterForm from "./linterForm";
 import SectionWrapper from "./sectionWrapper";
@@ -32,13 +31,18 @@ const emptyLinter = {
 
 const StyleLinterSetting = ({ isLinterEnabled, linters }: StyleLinterSettingProps) => {
   const params = useParams<{ mailbox_slug: string }>();
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [newLinter, setNewLinter] = useState<LinterUpdate>(emptyLinter);
+
+  const { mutateAsync: upsertStyleLinterMutation } = api.mailbox.styleLinters.upsert.useMutation();
+  const { mutateAsync: deleteStyleLinterMutation } = api.mailbox.styleLinters.delete.useMutation();
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this style linter?")) {
       try {
-        await deleteStyleLinter({ mailboxSlug: params.mailbox_slug, id });
+        await deleteStyleLinterMutation({ mailboxSlug: params.mailbox_slug, id });
+        router.refresh();
         toast({
           title: "Example deleted!",
           variant: "success",
@@ -54,10 +58,11 @@ const StyleLinterSetting = ({ isLinterEnabled, linters }: StyleLinterSettingProp
 
   const handleSubmit = async (linterUpdate: LinterUpdate) => {
     try {
-      await upsertStyleLinter({
+      await upsertStyleLinterMutation({
         mailboxSlug: params.mailbox_slug,
         linter: { id: linterUpdate.id, before: linterUpdate.before ?? "", after: linterUpdate.after ?? "" },
       });
+      router.refresh();
     } catch (error) {
       toast({ title: "Error creating example", variant: "destructive" });
     }

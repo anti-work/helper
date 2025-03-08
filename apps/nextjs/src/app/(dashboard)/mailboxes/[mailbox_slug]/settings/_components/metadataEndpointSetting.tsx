@@ -2,7 +2,7 @@
 
 import { DocumentDuplicateIcon, EyeIcon, EyeSlashIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import cx from "classnames";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import SectionWrapper from "@/app/(dashboard)/mailboxes/[mailbox_slug]/settings/_components/sectionWrapper";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { createEndpoint, deleteEndpoint, testEndpoint } from "@/serverActions/metadata-endpoint";
+import { api } from "@/trpc/react";
 
 type MetadataEndpointSettingProps = {
   metadataEndpoint: MetadataEndpoint | null;
@@ -20,6 +20,7 @@ type MetadataEndpointSettingProps = {
 
 const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingProps) => {
   const params = useParams();
+  const router = useRouter();
   const mailboxSlug = params.mailbox_slug as string;
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +31,13 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
     open: false,
     content: "",
   });
+
+  const { mutateAsync: createEndpointMutation } = api.mailbox.metadataEndpoint.create.useMutation();
+  const { mutateAsync: deleteEndpointMutation } = api.mailbox.metadataEndpoint.delete.useMutation();
+  const { refetch: testEndpointQuery } = api.mailbox.metadataEndpoint.test.useQuery(
+    { mailboxSlug },
+    { enabled: false },
+  );
 
   const testRequestTexts = {
     idle: "Send test request to URL",
@@ -48,7 +56,7 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
 
     setIsLoading(true);
     try {
-      const result = await createEndpoint({ mailboxSlug, url: newUrl });
+      const result = await createEndpointMutation({ mailboxSlug, url: newUrl });
       if (result?.error) {
         toast({
           variant: "destructive",
@@ -56,6 +64,7 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
         });
         return;
       }
+      router.refresh();
       toast({
         title: "Metadata endpoint added!",
       });
@@ -73,7 +82,7 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
     if (confirm("Are you sure you want to remove this Metadata Endpoint?")) {
       setIsLoading(true);
       try {
-        const result = await deleteEndpoint({ mailboxSlug });
+        const result = await deleteEndpointMutation({ mailboxSlug });
         if (result?.error) {
           toast({
             variant: "destructive",
@@ -83,6 +92,7 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
         }
         setNewUrl("");
         setShowSecret(false);
+        router.refresh();
         toast({
           title: "Metadata endpoint removed!",
         });
@@ -100,7 +110,7 @@ const MetadataEndpointSetting = ({ metadataEndpoint }: MetadataEndpointSettingPr
   const sendTestRequest = async () => {
     setTestRequestStatus("loading");
     try {
-      const result = await testEndpoint({ mailboxSlug });
+      const { data: result } = await testEndpointQuery();
       if (result?.error) {
         toast({
           variant: "destructive",

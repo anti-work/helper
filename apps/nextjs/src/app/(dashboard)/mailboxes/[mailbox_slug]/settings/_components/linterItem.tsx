@@ -1,9 +1,10 @@
 import { TrashIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Linter, LinterUpdate } from "@/app/types/global";
 import { toast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { upsertStyleLinter } from "@/serverActions/style-linter";
+import { api } from "@/trpc/react";
 import LinterForm from "./linterForm";
 
 type LinterItemProps = {
@@ -15,6 +16,8 @@ type LinterItemProps = {
 
 const LinterItem = ({ mailboxSlug, linter, onDelete, onClickEdit }: LinterItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const router = useRouter();
+  const { mutateAsync: upsertStyleLinterMutation } = api.mailbox.styleLinters.upsert.useMutation();
 
   const handleStartEditing = () => {
     setIsEditing(true);
@@ -22,10 +25,11 @@ const LinterItem = ({ mailboxSlug, linter, onDelete, onClickEdit }: LinterItemPr
 
   const handleSubmit = async (linterUpdate: LinterUpdate) => {
     try {
-      await upsertStyleLinter({
+      await upsertStyleLinterMutation({
         mailboxSlug,
         linter: { id: linterUpdate.id, before: linterUpdate.before ?? "", after: linterUpdate.after ?? "" },
       });
+      router.refresh();
     } catch (error) {
       toast({ title: "Error updating example", variant: "destructive" });
     }

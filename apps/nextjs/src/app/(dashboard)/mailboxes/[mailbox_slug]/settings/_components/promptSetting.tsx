@@ -1,11 +1,12 @@
 "use client";
 
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 import SectionWrapper from "@/app/(dashboard)/mailboxes/[mailbox_slug]/settings/_components/sectionWrapper";
 import type { PromptLineUpdate } from "@/app/types/global";
 import { toast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { updatePromptLines } from "@/serverActions/prompt-lines";
+import { api } from "@/trpc/react";
 import PromptLineItem from "./promptLineItem";
 import { useSettings } from "./useSettings";
 
@@ -18,12 +19,18 @@ type PromptSettingProps = {
 
 const PromptSetting = ({ mailboxSlug, promptLines, onChange, pendingUpdates }: PromptSettingProps) => {
   const { addNewRow, deleteNewRow, newRows, handleChange } = useSettings<PromptLineUpdate>(onChange, pendingUpdates);
+  const router = useRouter();
+  const { mutateAsync: updateMailboxMutation } = api.mailbox.update.useMutation();
 
   const deletePromptLine = async (idx: number) => {
     if (confirm("Are you sure you want to delete this prompt line?")) {
       try {
         const newPromptLines = promptLines?.filter((content, i) => content && i !== idx) || [];
-        await updatePromptLines({ mailboxSlug, responseGeneratorPrompt: newPromptLines });
+        await updateMailboxMutation({
+          mailboxSlug,
+          responseGeneratorPrompt: newPromptLines,
+        });
+        router.refresh();
         toast({
           title: "Prompt deleted!",
           variant: "success",

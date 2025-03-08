@@ -100,12 +100,12 @@ export const conversationsRouter = {
   update: conversationProcedure
     .input(
       z.object({
-        status: z.optional(z.enum(["open", "closed", "spam"])),
-        assignedToId: z.optional(z.string().nullable()),
-        message: z.optional(z.string().nullable()),
+        status: z.enum(["open", "closed", "spam"]).optional(),
+        assignedToId: z.string().nullable().optional(),
+        message: z.string().nullable().optional(),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ ctx, input }) => {
       if (input.assignedToId) {
         const members = await getOrganizationMembers(ctx.session.orgId);
         if (!members.data.some((m) => m.publicUserData?.userId === input.assignedToId)) {

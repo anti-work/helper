@@ -157,6 +157,28 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             after: string;
           }[];
         }>;
+        upsert: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            mailboxSlug: string;
+            linter: {
+              before: string;
+              after: string;
+              id?: number | undefined;
+            };
+          };
+          output: {
+            success: boolean;
+          };
+        }>;
+        delete: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            mailboxSlug: string;
+            id: number;
+          };
+          output: {
+            success: boolean;
+          };
+        }>;
         setEnabled: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             mailboxSlug: string;
@@ -1188,6 +1210,51 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             startedAt: Date;
             completedAt: Date | null;
           };
+        }>;
+      };
+      metadataEndpoint: {
+        create: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            mailboxSlug: string;
+            url: string;
+          };
+          output:
+            | {
+                success: boolean;
+                error: undefined;
+              }
+            | {
+                success: boolean;
+                error: string;
+              };
+        }>;
+        delete: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            mailboxSlug: string;
+          };
+          output:
+            | {
+                success: boolean;
+                error: undefined;
+              }
+            | {
+                success: boolean;
+                error: string;
+              };
+        }>;
+        test: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            mailboxSlug: string;
+          };
+          output:
+            | {
+                success: boolean;
+                error: undefined;
+              }
+            | {
+                success: boolean;
+                error: string;
+              };
         }>;
       };
     };
