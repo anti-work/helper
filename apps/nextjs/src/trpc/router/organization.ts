@@ -22,8 +22,8 @@ export const organizationRouter = {
         freeTrialEndsAt: organization.privateMetadata.freeTrialEndsAt
           ? new Date(organization.privateMetadata.freeTrialEndsAt)
           : null,
-        automatedRepliesCount: organization.privateMetadata.automatedRepliesCount ?? null,
-        automatedRepliesUsageLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
+        resolutionsCount: organization.privateMetadata.automatedRepliesCount ?? null,
+        resolutionsLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
         subscriptionStatus: await getSubscriptionStatus(organization),
       },
     };

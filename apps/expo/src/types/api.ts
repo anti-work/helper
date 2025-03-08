@@ -173,6 +173,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             sort?: unknown;
             search?: string | null | undefined;
             reactionType?: "thumbs-up" | "thumbs-down" | undefined;
+            events?: ("request_human_support" | "resolved_by_ai")[] | undefined;
             topic?: number[] | undefined;
             limit?: number | undefined;
             cursor?: string | null | undefined;
@@ -567,6 +568,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   sort?: unknown;
                   search?: string | null | undefined;
                   reactionType?: "thumbs-up" | "thumbs-down" | undefined;
+                  events?: ("request_human_support" | "resolved_by_ai")[] | undefined;
                   topic?: number[] | undefined;
                   limit?: number | undefined;
                   cursor?: string | null | undefined;
@@ -1080,18 +1082,6 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           };
         }>;
       };
-      topics: {
-        all: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            mailboxSlug: string;
-          };
-          output: {
-            name: string;
-            id: number;
-            parentId: number | null;
-          }[];
-        }>;
-      };
       customers: {
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -1203,8 +1193,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         output: {
           trialInfo: {
             freeTrialEndsAt: Date | null;
-            automatedRepliesCount: {} | null;
-            automatedRepliesUsageLimit: number;
+            resolutionsCount: {} | null;
+            resolutionsLimit: number;
             subscriptionStatus: import("../lib/data/organization").SubscriptionStatus;
           };
         };
@@ -1251,6 +1241,45 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         output: {
           message: string;
         };
+      }>;
+    };
+    subscription: {
+      startCheckout: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+          mailboxSlug: string;
+        };
+        output: {
+          url: string;
+        };
+      }>;
+      subscribe: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+          mailboxSlug: string;
+          sessionId: string;
+        };
+        output: {
+          success: boolean;
+          message: string;
+        };
+      }>;
+      manage: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+          mailboxSlug: string;
+        };
+        output: {
+          url: string;
+        };
+      }>;
+      get: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+          mailboxSlug: string;
+        };
+        output: {
+          unitAmount: number;
+          aiResolutions: number;
+          currentPeriodStart: Date;
+          currentPeriodEnd: Date;
+        } | null;
       }>;
     };
     isSignedIn: import("@trpc/server").TRPCQueryProcedure<{

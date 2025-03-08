@@ -2,9 +2,9 @@ import { userFactory } from "@tests/support/factories/users";
 import { describe, expect, it, vi } from "vitest";
 import { takeUniqueOrThrow } from "@/components/utils/arrays";
 import { db } from "@/db/client";
-import { gmailSupportEmails, subscriptions } from "@/db/schema";
+import { gmailSupportEmails } from "@/db/schema";
 import { env } from "@/env";
-import { cancelStripeSubscription, createStripeCheckoutSessionUrl } from "@/lib/data/subscription";
+import { createStripeCheckoutSessionUrl } from "@/lib/data/subscription";
 import { stripe } from "@/lib/stripe/client";
 
 vi.mock("@/lib/stripe/client", () => ({
@@ -47,15 +47,7 @@ describe("createStripeCheckoutSessionUrl", () => {
     const baseExpectedArgs = {
       client_reference_id: organization.id.toString(),
       mode: "subscription",
-      line_items: [
-        {
-          price: env.STRIPE_FIXED_PRICE_ID,
-          quantity: 1000,
-        },
-        {
-          price: env.STRIPE_GRADUATED_PRICE_ID,
-        },
-      ],
+      line_items: [{ price: env.STRIPE_PRICE_ID }],
       success_url: `http://localhost:3010/mailboxes/${mailbox.slug}/settings?tab=billing&stripeStatus=success&stripeSessionId={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:3010/mailboxes/${mailbox.slug}/settings?tab=billing`,
     };
@@ -87,41 +79,6 @@ describe("createStripeCheckoutSessionUrl", () => {
     expect(stripe.checkout.sessions.create).toHaveBeenCalledWith({
       ...baseExpectedArgs,
       customer_email: "test@example.com",
-    });
-  });
-});
-
-describe("cancelStripeSubscription", () => {
-  it("cancels the provided organization's subscription", async () => {
-    const { organization } = await userFactory.createRootUser();
-    const subscription = await db
-      .insert(subscriptions)
-      .values({
-        clerkOrganizationId: organization.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        stripeSubscriptionId: "sub_123",
-        stripeCustomerId: "cus_123",
-        currentPeriodEnd: new Date(),
-        status: "active",
-        canceledAt: null,
-      })
-      .returning()
-      .then(takeUniqueOrThrow);
-
-    expect(await cancelStripeSubscription(organization.id)).toEqual({
-      success: true,
-      message: "Successfully unsubscribed. Your subscription will end after the current billing period.",
-    });
-    expect(stripe.subscriptions.update).toHaveBeenCalledWith(subscription.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
-  });
-
-  it("returns an error message when the subscription does not exist", async () => {
-    expect(await cancelStripeSubscription("123456789")).toEqual({
-      success: false,
-      message: "Subscription does not exist.",
     });
   });
 });

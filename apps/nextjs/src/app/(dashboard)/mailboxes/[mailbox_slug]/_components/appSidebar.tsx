@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getTauriPlatform, useNativePlatform } from "@/components/useNativePlatform";
 import { cn } from "@/lib/utils";
-import { subscribeToHelper } from "@/serverActions/subscription";
+import { api } from "@/trpc/react";
 import { CategoryNav } from "./categoryNav";
 import NativeAppModal, {
   isMac,
@@ -76,6 +76,12 @@ export function AppSidebar({ mailboxSlug, sidebarInfo }: Props) {
   const { setState: setLayoutState } = useLayoutInfo();
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const router = useRouter();
+
+  const { mutate: startCheckout } = api.subscription.startCheckout.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
 
   useEffect(() => {
     setShowUpgradePrompt(trialInfo.subscriptionStatus !== "paid" && !!trialInfo.freeTrialEndsAt && !getTauriPlatform());
@@ -187,22 +193,22 @@ export function AppSidebar({ mailboxSlug, sidebarInfo }: Props) {
                 {trialInfo.subscriptionStatus !== "free_trial_expired" && (
                   <div className="flex flex-col gap-1">
                     <div className="flex gap-2 justify-between">
-                      <div className="text-sm">Auto-replies</div>
+                      <div className="text-sm">AI resolutions</div>
                       <div className="text-sm opacity-50">
-                        {trialInfo.automatedRepliesCount}/{trialInfo.automatedRepliesUsageLimit} sent
+                        {trialInfo.resolutionsCount}/{trialInfo.resolutionsLimit}
                       </div>
                     </div>
                     <div className="h-2 w-full rounded-full bg-sidebar-accent">
                       <div
                         className="h-2 rounded-full bg-sidebar-foreground"
                         style={{
-                          width: `${((trialInfo.automatedRepliesCount ?? 0) / (trialInfo.automatedRepliesUsageLimit ?? 1)) * 100}%`,
+                          width: `${((trialInfo.resolutionsCount ?? 0) / (trialInfo.resolutionsLimit ?? 1)) * 100}%`,
                         }}
                       ></div>
                     </div>
                   </div>
                 )}
-                <Button variant="bright" size="sm" onClick={() => subscribeToHelper({ mailboxSlug })}>
+                <Button variant="bright" size="sm" onClick={() => startCheckout({ mailboxSlug })}>
                   Upgrade
                 </Button>
                 {trialInfo.subscriptionStatus === "free_trial_expired" ? (

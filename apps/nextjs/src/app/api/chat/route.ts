@@ -20,6 +20,7 @@ import {
 import { disableAIResponse } from "@/lib/data/conversationMessage";
 import { createAndUploadFile } from "@/lib/data/files";
 import { type Mailbox } from "@/lib/data/mailbox";
+import { getCachedSubscriptionStatus } from "@/lib/data/organization";
 import { getPlatformCustomer } from "@/lib/data/platformCustomer";
 import { redis } from "@/lib/redis/client";
 import { captureExceptionAndLogIfDevelopment } from "@/lib/shared/sentry";
@@ -141,6 +142,11 @@ export async function POST(request: Request) {
       const assistantMessage = await createAssistantMessage(conversation.id, userMessage.id, cached);
       return createTextResponse(cached, assistantMessage.id.toString());
     }
+  }
+
+  // Only fail if we're about to generate an AI response since only AI resolutions are billed
+  if ((await getCachedSubscriptionStatus(mailbox.clerkOrganizationId)) === "free_trial_expired") {
+    return createTextResponse("Free trial expired. Please upgrade to continue using Helper.", Date.now().toString());
   }
 
   const screenshotInvocation = messages

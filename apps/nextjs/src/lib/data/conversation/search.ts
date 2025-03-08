@@ -4,6 +4,7 @@ import { z } from "zod";
 import { DEFAULT_CONVERSATIONS_PER_PAGE } from "@/components/constants";
 import { db } from "@/db/client";
 import {
+  conversationEvents,
   conversationMessages,
   conversations,
   conversationsTopics,
@@ -30,6 +31,7 @@ export const searchSchema = z.object({
   topic: z.array(z.number()).optional(),
   isVip: z.boolean().optional(),
   reactionType: z.enum(["thumbs-up", "thumbs-down"]).optional(),
+  events: z.array(z.enum(["request_human_support", "resolved_by_ai"])).optional(),
 });
 
 export const searchConversations = async (
@@ -98,6 +100,21 @@ export const searchConversations = async (
                   eq(conversationMessages.conversationId, conversations.id),
                   eq(conversationMessages.reactionType, filters.reactionType),
                   isNull(conversationMessages.deletedAt),
+                ),
+              ),
+          ),
+        }
+      : {}),
+    ...(filters.events?.length
+      ? {
+          events: exists(
+            db
+              .select()
+              .from(conversationEvents)
+              .where(
+                and(
+                  eq(conversationEvents.conversationId, conversations.id),
+                  inArray(conversationEvents.type, filters.events),
                 ),
               ),
           ),

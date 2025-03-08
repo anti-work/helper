@@ -1,20 +1,9 @@
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
-import { SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT } from "@/components/constants";
-import { assertDefined } from "@/components/utils/assert";
 import { db } from "@/db/client";
-import { conversationMessages, conversations, subscriptions } from "@/db/schema";
-import AutomatedRepliesLimitExceededEmail from "@/emails/automatedRepliesLimitExceeded";
+import { conversationMessages, conversations } from "@/db/schema";
 import { inngest } from "@/inngest/client";
-import {
-  getClerkOrganization,
-  getOrganizationAdminUsers,
-  isFreeTrial,
-  setPrivateMetadata,
-} from "@/lib/data/organization";
-import { billWorkflowReply, isBillable } from "@/lib/data/subscription";
 import { getGmailService, getMessageMetadataById, sendGmailEmail } from "@/lib/gmail/client";
 import { convertEmailToRaw } from "@/lib/gmail/lib";
-import { sendEmail } from "@/lib/resend/client";
 import { captureExceptionAndThrowIfDevelopment } from "@/lib/shared/sentry";
 import { assertDefinedOrRaiseNonRetriableError } from "../utils";
 
@@ -29,36 +18,6 @@ const markFailed = async (emailId: number, conversationId: number, error: string
     await tx.update(conversations).set({ status: "open" }).where(eq(conversations.id, conversationId));
   });
   return error;
-};
-
-export const trackAndBillWorkflowReply = async (emailId: number, mailboxSlug: string, organizationId: string) => {
-  const organization = await getClerkOrganization(organizationId);
-  const updatedOrganization = await setPrivateMetadata(organizationId, {
-    automatedRepliesCount: (organization.privateMetadata.automatedRepliesCount ?? 0) + 1,
-  });
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.clerkOrganizationId, organizationId),
-  });
-  const automatedRepliesCount = assertDefined(updatedOrganization.privateMetadata.automatedRepliesCount);
-  if (
-    !subscription &&
-    isFreeTrial(organization) &&
-    !organization.privateMetadata.automatedRepliesLimitExceededAt &&
-    automatedRepliesCount >= SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT
-  ) {
-    for (const admin of await getOrganizationAdminUsers(organizationId)) {
-      await sendEmail({
-        from: "Helper <help@helper.ai>",
-        to: [assertDefinedOrRaiseNonRetriableError(admin.emailAddresses[0]?.emailAddress)],
-        subject: "Automated replies limit exceeded",
-        react: AutomatedRepliesLimitExceededEmail({ mailboxSlug }),
-      });
-    }
-    await setPrivateMetadata(organizationId, { automatedRepliesLimitExceededAt: new Date().toISOString() });
-  }
-  if (subscription && (await isBillable(subscription))) {
-    await billWorkflowReply(emailId, organizationId);
-  }
 };
 
 export const postEmailToGmail = async (emailId: number) => {
@@ -135,18 +94,6 @@ export const postEmailToGmail = async (emailId: number) => {
       .where(eq(conversationMessages.id, emailId));
 
     const result = await markSent(emailId);
-
-    if (email.role === "workflow") {
-      try {
-        await trackAndBillWorkflowReply(
-          emailId,
-          email.conversation.mailbox.slug,
-          email.conversation.mailbox.clerkOrganizationId,
-        );
-      } catch (error) {
-        captureExceptionAndThrowIfDevelopment(error);
-      }
-    }
 
     return result;
   } catch (e) {

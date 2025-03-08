@@ -7,6 +7,7 @@ import { SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT } from "@/components/constants";
 import { db } from "@/db/client";
 import { subscriptions } from "@/db/schema";
 import { env } from "@/env";
+import { redis } from "@/lib/redis/client";
 import { clerkClient, getClerkUserList } from "./user";
 
 export const ADDITIONAL_PAID_ORGANIZATION_IDS = env.ADDITIONAL_PAID_ORGANIZATION_IDS?.split(",") ?? [];
@@ -70,6 +71,17 @@ export const getSubscriptionStatus = async (organization: Organization): Promise
     return "free_trial";
   }
   return "free_trial_expired";
+};
+
+export const getCachedSubscriptionStatus = async (organizationId: string): Promise<SubscriptionStatus> => {
+  const cacheKey = `subscription-status:${organizationId}`;
+  const cached: SubscriptionStatus | null = await redis.get(cacheKey);
+  if (cached) return cached;
+
+  const organization = await getClerkOrganization(organizationId);
+  const status = await getSubscriptionStatus(organization);
+  await redis.set(cacheKey, status, { ex: 60 * 60 });
+  return status;
 };
 
 export const canSendAutomatedReplies = async (organization: Organization): Promise<boolean> => {

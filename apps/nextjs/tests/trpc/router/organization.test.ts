@@ -43,8 +43,8 @@ describe("organizationRouter", () => {
       expect(result).toEqual({
         trialInfo: {
           freeTrialEndsAt: futureDate,
-          automatedRepliesCount: null,
-          automatedRepliesUsageLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
+          resolutionsCount: null,
+          resolutionsLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
           subscriptionStatus: "free_trial",
         },
       });
@@ -66,8 +66,8 @@ describe("organizationRouter", () => {
       expect(result).toEqual({
         trialInfo: {
           freeTrialEndsAt: date,
-          automatedRepliesCount: organization.privateMetadata.automatedRepliesCount,
-          automatedRepliesUsageLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
+          resolutionsCount: organization.privateMetadata.automatedRepliesCount,
+          resolutionsLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
           subscriptionStatus: "paid",
         },
       });
@@ -90,8 +90,8 @@ describe("organizationRouter", () => {
       expect(result).toEqual({
         trialInfo: {
           freeTrialEndsAt: pastDate,
-          automatedRepliesCount: null,
-          automatedRepliesUsageLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
+          resolutionsCount: null,
+          resolutionsLimit: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
           subscriptionStatus: "free_trial_expired",
         },
       });

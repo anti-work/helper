@@ -11,7 +11,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { ChevronUp } from "lucide-react";
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import type { Linter, PromptLineUpdate, Subscription as SubscriptionType, SupportAccount } from "@/app/types/global";
 import { FileUploadProvider } from "@/components/fileUploadContext";
 import { toast } from "@/components/hooks/use-toast";
@@ -79,11 +79,7 @@ const Settings = ({
   const [isTransitionPending, startTransition] = useTransition();
   const [isUpdating, setIsUpdating] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<PendingUpdates>({});
-  const [showBilling, setShowBilling] = useState(false);
-
-  useEffect(() => {
-    setShowBilling(!getTauriPlatform());
-  }, []);
+  const [showBilling] = useState(() => !getTauriPlatform());
 
   const handleUpdateSettings = async () => {
     if (!hasPendingUpdates) return;
@@ -220,7 +216,7 @@ const Settings = ({
       label: "Billing",
       id: "billing",
       icon: CreditCardIcon,
-      content: <Subscription subscription={subscription} mailboxSlug={mailbox.slug} />,
+      content: <Subscription />,
     });
   }
 

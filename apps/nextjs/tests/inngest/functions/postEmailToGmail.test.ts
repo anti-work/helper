@@ -2,24 +2,17 @@ import { conversationMessagesFactory } from "@tests/support/factories/conversati
 import { conversationFactory } from "@tests/support/factories/conversations";
 import { fileFactory } from "@tests/support/factories/files";
 import { gmailSupportEmailFactory } from "@tests/support/factories/gmailSupportEmails";
-import { subscriptionFactory } from "@tests/support/factories/subscriptions";
 import { userFactory } from "@tests/support/factories/users";
-import { addDays } from "date-fns";
 import { eq } from "drizzle-orm/expressions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT } from "@/components/constants";
 import { takeUniqueOrThrow } from "@/components/utils/arrays";
 import { assertDefined } from "@/components/utils/assert";
 import { db } from "@/db/client";
 import { conversationMessages, conversations, mailboxes } from "@/db/schema";
-import AutomatedRepliesLimitExceededEmail from "@/emails/automatedRepliesLimitExceeded";
-import { postEmailToGmail, trackAndBillWorkflowReply } from "@/inngest/functions/postEmailToGmail";
-import { getClerkOrganization, getOrganizationAdminUsers, setPrivateMetadata } from "@/lib/data/organization";
-import { billWorkflowReply, isBillable } from "@/lib/data/subscription";
-import { getClerkUser } from "@/lib/data/user";
+import { postEmailToGmail } from "@/inngest/functions/postEmailToGmail";
+import { getClerkOrganization, setPrivateMetadata } from "@/lib/data/organization";
 import { getMessageMetadataById, sendGmailEmail } from "@/lib/gmail/client";
 import { convertEmailToRaw } from "@/lib/gmail/lib";
-import { sendEmail } from "@/lib/resend/client";
 import * as sentryUtils from "@/lib/shared/sentry";
 
 vi.mock("@/lib/resend/client", () => ({
@@ -223,29 +216,6 @@ describe("postEmailToGmail", () => {
       expect(sendGmailEmail).toHaveBeenCalledWith("mock client", "mock raw email", "testThreadId");
       await assertMarkSent(message.id);
     });
-
-    it("increments `automatedRepliesCount` for sent workflow emails", async () => {
-      const { conversation, mailbox, organization } = await setupConversationForGmailSending();
-
-      const { message } = await conversationMessagesFactory.createEnqueued(conversation.id, {
-        role: "workflow",
-      });
-
-      vi.mocked(getMessageMetadataById).mockResolvedValueOnce({
-        data: {
-          payload: {
-            headers: [{ name: "Message-ID", value: "<new-message-id@example.com>" }],
-          },
-        },
-      } as any);
-      vi.mocked(getClerkOrganization).mockResolvedValue(organization);
-      vi.mocked(setPrivateMetadata).mockResolvedValue(organization);
-
-      expect(await postEmailToGmail(message.id)).toBeNull();
-      expect(setPrivateMetadata).toHaveBeenCalledWith(organization.id, {
-        automatedRepliesCount: assertDefined(organization.privateMetadata.automatedRepliesCount) + 1,
-      });
-    });
   });
 
   describe("on failure", () => {
@@ -307,82 +277,6 @@ describe("postEmailToGmail", () => {
 
       expect(await postEmailToGmail(message.id)).toEqual("Unexpected error: Error: RIP");
       await assertMarkFailed(message.id);
-    });
-  });
-});
-
-describe("trackAndBillWorkflowReply", () => {
-  it("bills for the workflow reply if a subscription exists", async () => {
-    const { organization, mailbox } = await userFactory.createRootUser({});
-    const { conversation } = await conversationFactory.create(mailbox.id);
-    const { message } = await conversationMessagesFactory.createEnqueued(conversation.id, {
-      role: "workflow",
-    });
-
-    await trackAndBillWorkflowReply(message.id, mailbox.slug, organization.id);
-    expect(billWorkflowReply).toHaveBeenCalledTimes(0);
-    expect(isBillable).toHaveBeenCalledTimes(0);
-
-    const { subscription } = await subscriptionFactory.create(organization.id);
-    vi.mocked(isBillable).mockResolvedValue(false);
-    await trackAndBillWorkflowReply(message.id, mailbox.slug, organization.id);
-    expect(billWorkflowReply).toHaveBeenCalledTimes(0);
-    expect(isBillable).toHaveBeenCalledWith(subscription);
-    expect(isBillable).toHaveBeenCalledTimes(1);
-
-    vi.mocked(isBillable).mockResolvedValue(true);
-    await trackAndBillWorkflowReply(message.id, mailbox.slug, organization.id);
-
-    expect(billWorkflowReply).toHaveBeenCalledTimes(1);
-    expect(isBillable).toHaveBeenCalledTimes(2);
-    expect(isBillable).toHaveBeenCalledWith(subscription);
-  });
-
-  it("emails organizations that reach their auto reply limit", async () => {
-    const { organization, mailbox, user } = await userFactory.createRootUser({
-      organizationOverrides: {
-        privateMetadata: {
-          freeTrialEndsAt: addDays(new Date(), 30).toISOString(),
-          automatedRepliesCount: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT - 1,
-        },
-      },
-    });
-    const { conversation } = await conversationFactory.create(mailbox.id);
-    const { message } = await conversationMessagesFactory.createEnqueued(conversation.id, {
-      role: "workflow",
-    });
-
-    vi.mocked(getClerkUser).mockResolvedValue({
-      id: user.id,
-      emailAddresses: [{ emailAddress: user.emailAddresses[0]?.emailAddress }],
-    } as any);
-    vi.mocked(getClerkOrganization).mockResolvedValue(organization);
-    vi.mocked(getOrganizationAdminUsers).mockResolvedValue([user]);
-    vi.mocked(setPrivateMetadata).mockResolvedValue({
-      ...organization,
-      privateMetadata: {
-        ...organization.privateMetadata,
-        automatedRepliesCount: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
-      },
-    });
-
-    await trackAndBillWorkflowReply(message.id, mailbox.slug, organization.id);
-    expect(setPrivateMetadata).toHaveBeenCalledWith(organization.id, {
-      automatedRepliesCount: SUBSCRIPTION_FREE_TRIAL_USAGE_LIMIT,
-    });
-
-    expect(sendEmail).toHaveBeenCalledWith({
-      from: "Helper <help@helper.ai>",
-      to: [user.emailAddresses[0]?.emailAddress],
-      subject: "Automated replies limit exceeded",
-      react: "Mock component",
-    });
-    expect(AutomatedRepliesLimitExceededEmail).toHaveBeenCalledWith({ mailboxSlug: mailbox.slug });
-    expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(billWorkflowReply).toHaveBeenCalledTimes(0);
-    expect(isBillable).toHaveBeenCalledTimes(0);
-    expect(setPrivateMetadata).toHaveBeenCalledWith(organization.id, {
-      automatedRepliesLimitExceededAt: expect.any(String),
     });
   });
 });
