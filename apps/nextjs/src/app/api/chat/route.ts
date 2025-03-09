@@ -1,8 +1,11 @@
 import { createHash } from "crypto";
 import { waitUntil } from "@vercel/functions";
 import { appendClientMessage, createDataStreamResponse, formatDataStreamPart, type Message } from "ai";
+import { eq } from "drizzle-orm";
 import { authenticateWidget, corsOptions, corsResponse } from "@/app/api/widget/utils";
 import { assertDefined } from "@/components/utils/assert";
+import { db } from "@/db/client";
+import { conversations } from "@/db/schema";
 import { inngest } from "@/inngest/client";
 import {
   createAssistantMessage,
@@ -102,8 +105,13 @@ export async function POST(request: Request) {
     message,
   });
 
-  if (conversation.subject === CHAT_CONVERSATION_SUBJECT && messages.length > 1 && message) {
+  const isPromptConversation = conversation.source === "chat#prompt";
+  const isFirstMessage = messages.length === 1;
+
+  if (conversation.subject === CHAT_CONVERSATION_SUBJECT && (!isPromptConversation || !isFirstMessage) && message) {
     waitUntil(generateConversationSubject(conversation.id, messages, mailbox));
+  } else if (conversation.subject === CHAT_CONVERSATION_SUBJECT && isPromptConversation) {
+    waitUntil(db.update(conversations).set({ subject: message.content }).where(eq(conversations.id, conversation.id)));
   }
 
   const userEmail = session.isAnonymous ? null : session.email || null;
@@ -113,9 +121,6 @@ export async function POST(request: Request) {
   if (!session.isAnonymous && session.email) {
     platformCustomer = await getPlatformCustomer(mailbox.id, session.email);
   }
-
-  const isPromptConversation = conversation.source === "chat#prompt";
-  const isFirstMessage = messages.length === 1;
 
   if (
     (await disableAIResponse(conversation.id, mailbox, platformCustomer)) &&
