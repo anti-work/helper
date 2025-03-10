@@ -11,9 +11,11 @@ import { getMailboxInfo } from "@/lib/data/mailbox";
 import { getClerkOrganization } from "@/lib/data/organization";
 import { getMemberStats } from "@/lib/data/stats";
 import { protectedProcedure } from "@/trpc/trpc";
-import { conversationsRouter } from "./conversations";
+import { conversationsRouter } from "./conversations/index";
 import { customersRouter } from "./customers";
 import { faqsRouter } from "./faqs";
+import { githubRouter } from "./github";
+import { githubConversationsRouter } from "./githubConversationsRouter";
 import { metadataEndpointRouter } from "./metadataEndpoint";
 import { mailboxProcedure } from "./procedure";
 import { slackRouter } from "./slack";
@@ -102,6 +104,8 @@ export const mailboxRouter = {
     .input(
       z.object({
         slackAlertChannel: z.string().optional(),
+        githubRepoOwner: z.string().optional(),
+        githubRepoName: z.string().optional(),
         responseGeneratorPrompt: z.array(z.string()).optional(),
         widgetDisplayMode: z.enum(["off", "always", "revenue_based"]).optional(),
         widgetDisplayMinValue: z.number().optional(),
@@ -138,10 +142,14 @@ export const mailboxRouter = {
       return await getMemberStats(ctx.mailbox, { startDate, endDate: now });
     }),
   styleLinters: styleLintersRouter,
-  conversations: conversationsRouter,
+  conversations: {
+    ...githubConversationsRouter,
+    ...conversationsRouter,
+  },
   faqs: faqsRouter,
   workflows: workflowsRouter,
   slack: slackRouter,
+  github: githubRouter,
   tools: toolsRouter,
   customers: customersRouter,
   websites: websitesRouter,

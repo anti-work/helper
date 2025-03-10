@@ -28,6 +28,10 @@ export const conversations = pgTable(
     embedding: vector({ dimensions: 1536 }),
     embeddingText: text(),
     source: text().$type<"email" | "chat" | "chat#prompt">(),
+    githubIssueNumber: integer(),
+    githubIssueUrl: text(),
+    githubRepoOwner: text(),
+    githubRepoName: text(),
   },
   (table) => {
     return {

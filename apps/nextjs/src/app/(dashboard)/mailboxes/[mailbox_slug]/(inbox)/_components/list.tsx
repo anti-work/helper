@@ -488,7 +488,9 @@ const ListItem = ({ conversation, isActive, onSelectConversation, variant }: Lis
               )}
             >
               {conversation.status === "closed" ? (
-                <HumanizedTime time={conversation.closedAt ?? conversation.updatedAt} titlePrefix="Closed on" />
+                <>
+                  <HumanizedTime time={conversation.closedAt ?? conversation.updatedAt} titlePrefix="Closed on" />
+                </>
               ) : (
                 <HumanizedTime
                   time={conversation.lastUserEmailCreatedAt ?? conversation.updatedAt}

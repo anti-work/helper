@@ -19,6 +19,7 @@ import { conversationChannelId, conversationsListChannelId } from "@/lib/ably/ch
 import { publishToAbly } from "@/lib/ably/client";
 import { runAIQuery } from "@/lib/ai";
 import { extractAddresses } from "@/lib/emails";
+import { updateGitHubIssueState } from "@/lib/github/client";
 import { updateVipMessageOnClose } from "@/lib/slack/vipNotifications";
 import { emailKeywordsExtractor } from "../emailKeywordsExtractor";
 import { searchEmailsByKeywords } from "../emailSearchService/searchEmailsByKeywords";
@@ -113,6 +114,39 @@ export const updateConversation = async (
       },
     });
   }
+
+  // Update GitHub issue if status changed and there's a GitHub issue linked
+  if (
+    current.status !== updatedConversation.status &&
+    updatedConversation.githubIssueNumber &&
+    updatedConversation.githubRepoOwner &&
+    updatedConversation.githubRepoName
+  ) {
+    try {
+      // Get the mailbox to access GitHub token
+      const mailbox = await getMailboxById(updatedConversation.mailboxId);
+
+      if (mailbox?.githubAccessToken) {
+        // Map conversation status to GitHub issue state
+        const githubState = updatedConversation.status === "closed" ? "closed" : "open";
+
+        await updateGitHubIssueState({
+          accessToken: mailbox.githubAccessToken,
+          owner: updatedConversation.githubRepoOwner,
+          repo: updatedConversation.githubRepoName,
+          issueNumber: updatedConversation.githubIssueNumber,
+          state: githubState,
+        });
+
+        console.log(`Updated GitHub issue #${updatedConversation.githubIssueNumber} state to ${githubState}`);
+      }
+    } catch (error) {
+      console.error("Failed to update GitHub issue:", error);
+      captureExceptionAndLogIfDevelopment(error);
+      // Don't throw the error - we don't want to fail the conversation update if GitHub update fails
+    }
+  }
+
   if (current.status !== "closed" && updatedConversation?.status === "closed") {
     await updateVipMessageOnClose(updatedConversation.id, byUserId);
 
@@ -193,6 +227,10 @@ export const serializeConversation = (
     summary: conversation.summary,
     source: conversation.source ?? "email",
     embeddingText: conversation.embeddingText,
+    githubIssueNumber: conversation.githubIssueNumber,
+    githubIssueUrl: conversation.githubIssueUrl,
+    githubRepoOwner: conversation.githubRepoOwner,
+    githubRepoName: conversation.githubRepoName,
   };
 };
 

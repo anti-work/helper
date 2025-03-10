@@ -35,6 +35,18 @@ const Page = async (props: { params: Promise<PageProps> }) => {
       }
     }
 
+    if (pendingUpdates.github) {
+      try {
+        await api.mailbox.update({
+          mailboxSlug: params.mailbox_slug,
+          githubRepoOwner: pendingUpdates.github.repoOwner ?? undefined,
+          githubRepoName: pendingUpdates.github.repoName ?? undefined,
+        });
+      } catch (e) {
+        throw new Error("Failed to update GitHub settings");
+      }
+    }
+
     if (pendingUpdates.promptLines) {
       try {
         const currentPrompt = await api.mailbox.get({ mailboxSlug: params.mailbox_slug });

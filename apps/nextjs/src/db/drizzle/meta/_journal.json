@@ -421,6 +421,13 @@
       "when": 1740863096002,
       "tag": "0059_known_viper",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1741527226006,
+      "tag": "0060_thick_wither",
+      "breakpoints": true
     }
   ]
 }

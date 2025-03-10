@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { api } from "@/trpc/react";
 import { useAssigneesPage } from "./assigneesPage";
 import { CommandList } from "./commandList";
+import { GitHubIssuePage } from "./githubIssuePage";
 import { useMainPage } from "./mainPage";
 import { NotesPage } from "./notesPage";
 import { usePreviousRepliesPage } from "./previousRepliesPage";
@@ -33,7 +34,9 @@ export function TicketCommandBar({
   const { conversationSlug, mailboxSlug } = useConversationContext();
   const [inputValue, setInputValue] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [page, setPage] = useState<"main" | "previous-replies" | "assignees" | "notes" | "tools">("main");
+  const [page, setPage] = useState<"main" | "previous-replies" | "assignees" | "notes" | "tools" | "github-issue">(
+    "main",
+  );
   const { user: currentUser } = useUser();
   const { data: orgMembers } = api.organization.getMembers.useQuery(undefined, {
     staleTime: Infinity,
@@ -89,6 +92,9 @@ export function TicketCommandBar({
     } else if (selectedItem?.id === "add-note") {
       setPage("notes");
       setSelectedItemId(null);
+    } else if (selectedItem?.id === "github-issue") {
+      setPage("github-issue");
+      setSelectedItemId(null);
     } else {
       selectedItem?.onSelect();
     }
@@ -120,7 +126,7 @@ export function TicketCommandBar({
         }
         break;
       case "ArrowLeft":
-        if (page === "previous-replies" || page === "assignees") {
+        if (page === "previous-replies" || page === "assignees" || page === "github-issue") {
           e.preventDefault();
           setPage("main");
         }
@@ -132,14 +138,14 @@ export function TicketCommandBar({
         }
         break;
       case "Escape":
-        if (page === "previous-replies" || page === "assignees") {
+        if (page === "previous-replies" || page === "assignees" || page === "github-issue") {
           setPage("main");
         } else {
           onOpenChange(false);
         }
         break;
       case "Backspace":
-        if ((page === "previous-replies" || page === "assignees") && !inputValue) {
+        if ((page === "previous-replies" || page === "assignees" || page === "github-issue") && !inputValue) {
           setPage("main");
         }
         break;
@@ -182,6 +188,8 @@ export function TicketCommandBar({
         return [];
       case "tools":
         return toolsPage.groups;
+      case "github-issue":
+        return [];
       default:
         return mainPageGroups;
     }
@@ -204,6 +212,8 @@ export function TicketCommandBar({
           <NotesPage onOpenChange={onOpenChange} />
         ) : page === "tools" && toolsPage.selectedTool ? (
           <ToolForm tool={toolsPage.selectedTool} onOpenChange={onOpenChange} />
+        ) : page === "github-issue" ? (
+          <GitHubIssuePage onOpenChange={onOpenChange} />
         ) : (
           <>
             <Command
