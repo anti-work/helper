@@ -27,7 +27,6 @@
     "start": "npx next start",
     "test": "npm run with-dev-env vitest",
     "test:watch": "npm run with-dev-env vitest -- --watch",
-    "shortest": "npm run with-dev-env npx shortest --",
     "typecheck": "npm run with-dev-env npm run build && npm run db:check",
     "with-dev-env": "dotenv -e ./.env.development.local -e ./.env.local --"
   },

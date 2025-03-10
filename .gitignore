@@ -10,5 +10,4 @@ dist/
 coverage/
 .vercel
 .tool-versions
-.shortest/
 docker/local-nginx/certs/*
