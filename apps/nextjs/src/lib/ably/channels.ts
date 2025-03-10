@@ -2,3 +2,5 @@ export const conversationsListChannelId = (mailboxSlug: string) => `${mailboxSlu
 
 export const conversationChannelId = (mailboxSlug: string, conversationSlug: string) =>
   `${mailboxSlug}:conversation-${conversationSlug}`;
+
+export const dashboardChannelId = (mailboxSlug: string) => `${mailboxSlug}:dashboard`;

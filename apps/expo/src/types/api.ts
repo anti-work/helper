@@ -146,6 +146,13 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           replyCount: number;
         }[];
       }>;
+      latestEvents: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+          mailboxSlug: string;
+          cursor?: Date | undefined;
+        };
+        output: any;
+      }>;
       styleLinters: {
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {

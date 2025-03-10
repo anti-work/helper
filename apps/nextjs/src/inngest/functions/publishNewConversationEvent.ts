@@ -3,9 +3,10 @@ import { NonRetriableError } from "inngest";
 import { db } from "@/db/client";
 import { conversationMessages } from "@/db/schema";
 import { inngest } from "@/inngest/client";
-import { conversationChannelId, conversationsListChannelId } from "@/lib/ably/channels";
+import { conversationChannelId, conversationsListChannelId, dashboardChannelId } from "@/lib/ably/channels";
 import { publishToAbly } from "@/lib/ably/client";
 import { serializeMessage } from "@/lib/data/conversationMessage";
+import { createMessageEventPayload } from "@/lib/data/dashboardEvent";
 import { getClerkUser } from "@/lib/data/user";
 import { captureExceptionAndLogIfDevelopment } from "@/lib/shared/sentry";
 
@@ -72,6 +73,14 @@ const publish = async (messageId: number) => {
       data: message.conversation,
     });
     published.push("conversation.new");
+  }
+  if (message) {
+    await publishToAbly({
+      channel: dashboardChannelId(message.conversation.mailbox.slug),
+      event: "event",
+      data: createMessageEventPayload(message, message.conversation.mailbox),
+    });
+    published.push("realtime.event");
   }
   return `Message ${message?.id} published to Ably: ${published.join(", ") || "none"}`;
 };

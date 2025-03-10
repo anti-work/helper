@@ -2,6 +2,7 @@ import { waitUntil } from "@vercel/functions";
 import { CoreMessage, tool, type Tool } from "ai";
 import { z } from "zod";
 import { assertDefined } from "@/components/utils/assert";
+import { inngest } from "@/inngest/client";
 import { REQUEST_HUMAN_SUPPORT_DESCRIPTION } from "@/lib/ai/constants";
 import { getConversationById, updateConversation } from "@/lib/data/conversation";
 import { Mailbox } from "@/lib/data/mailbox";
@@ -72,6 +73,16 @@ const requestHumanSupport = async (
 
   if (email) {
     waitUntil(updateCustomerMetadata(email, conversation.mailboxId, mailbox.slug));
+
+    waitUntil(
+      inngest.send({
+        name: "conversations/human-support-requested",
+        data: {
+          mailboxSlug: mailbox.slug,
+          conversationId: conversation.id,
+        },
+      }),
+    );
   }
 
   return "The conversation has been escalated to a human agent. You will be contacted soon by email.";

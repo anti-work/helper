@@ -137,6 +137,12 @@ export const inngest = new Inngest({
           reason: z.string().nullable(),
         }),
       },
+      "conversations/human-support-requested": {
+        data: z.object({
+          mailboxSlug: z.string(),
+          conversationId: z.number(),
+        }),
+      },
     })
     .fromUnion<NonZodEvents>(),
   middleware: [sentryMiddleware()],

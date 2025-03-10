@@ -13,9 +13,9 @@ export type PlatformCustomer = typeof platformCustomers.$inferSelect & {
   isVip: boolean;
 };
 
-export const determineVipStatus = (customerValue: number | null, vipThreshold: number | null) => {
+export const determineVipStatus = (customerValue: string | number | null, vipThreshold: number | null) => {
   if (!customerValue || !vipThreshold) return false;
-  return customerValue / 100 >= vipThreshold;
+  return Number(customerValue) / 100 >= vipThreshold;
 };
 
 export const getPlatformCustomer = async (mailboxId: number, email: string): Promise<PlatformCustomer | null> => {

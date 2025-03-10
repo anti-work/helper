@@ -529,7 +529,7 @@ const ListItem = ({ conversation, isActive, onSelectConversation, variant }: Lis
                 title="VIP Customer"
               >
                 <div className="flex items-center gap-1 text-xs">
-                  <Badge variant="yellow">VIP</Badge>
+                  <Badge variant="bright">VIP</Badge>
                 </div>
               </div>
             )}

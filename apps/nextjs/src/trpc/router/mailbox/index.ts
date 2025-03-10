@@ -7,6 +7,7 @@ import { setupOrganizationForNewUser } from "@/auth/lib/authService";
 import { assertDefined } from "@/components/utils/assert";
 import { db } from "@/db/client";
 import { conversations, mailboxes } from "@/db/schema";
+import { getLatestEvents } from "@/lib/data/dashboardEvent";
 import { getMailboxInfo } from "@/lib/data/mailbox";
 import { getClerkOrganization } from "@/lib/data/organization";
 import { getMemberStats } from "@/lib/data/stats";
@@ -137,6 +138,9 @@ export const mailboxRouter = {
       const startDate = input.customDate || subHours(now, periodInHours[input.period]);
       return await getMemberStats(ctx.mailbox, { startDate, endDate: now });
     }),
+  latestEvents: mailboxProcedure
+    .input(z.object({ cursor: z.date().optional() }))
+    .query(({ ctx, input }) => getLatestEvents(ctx.mailbox, input.cursor)),
   styleLinters: styleLintersRouter,
   conversations: conversationsRouter,
   faqs: faqsRouter,

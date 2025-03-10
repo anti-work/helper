@@ -3,8 +3,12 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { authenticateWidget } from "@/app/api/widget/utils";
 import { takeUniqueOrThrow } from "@/components/utils/arrays";
+import { assertDefined } from "@/components/utils/assert";
 import { db } from "@/db/client";
 import { conversationMessages, conversations } from "@/db/schema";
+import { dashboardChannelId } from "@/lib/ably/channels";
+import { publishToAbly } from "@/lib/ably/client";
+import { createReactionEventPayload } from "@/lib/data/dashboardEvent";
 import { langfuse } from "@/lib/langfuse/client";
 
 const MessageReactionSchema = z.discriminatedUnion("type", [
@@ -92,6 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         reactionCreatedAt: new Date(),
       })
       .where(eq(conversationMessages.id, messageId));
+    waitUntil(publishEvent(slug, messageId));
     return Response.json({ reaction });
   }
 
@@ -104,6 +109,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         reactionCreatedAt: null,
       })
       .where(eq(conversationMessages.id, messageId));
+    waitUntil(publishEvent(slug, messageId));
     return Response.json({ reaction: null });
   }
 
@@ -115,8 +121,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       reactionCreatedAt: new Date(),
     })
     .where(eq(conversationMessages.id, messageId));
-
+  waitUntil(publishEvent(slug, messageId));
   waitUntil(langfuse.flushAsync());
 
   return Response.json({ reaction });
 }
+
+const publishEvent = async (mailboxSlug: string, messageId: number) => {
+  const message = assertDefined(
+    await db.query.conversationMessages.findFirst({
+      columns: {
+        id: true,
+        reactionType: true,
+        reactionFeedback: true,
+        reactionCreatedAt: true,
+      },
+      with: {
+        conversation: {
+          columns: { subject: true, emailFrom: true, slug: true },
+          with: {
+            platformCustomer: { columns: { value: true } },
+            mailbox: true,
+          },
+        },
+      },
+      where: eq(conversationMessages.id, messageId),
+    }),
+  );
+
+  await publishToAbly({
+    channel: dashboardChannelId(mailboxSlug),
+    event: "event",
+    data: createReactionEventPayload(message, message.conversation.mailbox),
+  });
+};
